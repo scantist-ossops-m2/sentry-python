@@ -12,6 +12,7 @@ from opentelemetry.trace import (
     use_span,
 )
 
+from sentry_sdk.client import NonRecordingClient
 from sentry_sdk.integrations.opentelemetry.consts import (
     SENTRY_SCOPES_KEY,
     SENTRY_FORK_ISOLATION_SCOPE_KEY,
@@ -134,6 +135,54 @@ class PotelScope(Scope):
             )
 
         return POTelSpan(**kwargs, scope=self)
+
+
+    @classmethod
+    def get_client(cls):
+        # type: () -> sentry_sdk.client.BaseClient
+        """
+        .. versionadded:: 2.0.0
+
+        Returns the currently used :py:class:`sentry_sdk.Client`.
+        This checks the current scope, and the isolation scope for a client.
+        If no client is available a :py:class:`sentry_sdk.client.NonRecordingClient` is returned.
+        """
+        scopes = cls._get_scopes()
+
+        if not scopes:
+            return NonRecordingClient()
+
+        current_scope, isolation_scope = scopes
+        try:
+            client = current_scope.client
+        except AttributeError:
+            client = None
+
+        if client is not None and client.is_active():
+            return client
+
+        try:
+            client = isolation_scope.client
+        except AttributeError:
+            client = None
+
+        if client is not None and client.is_active():
+            return client
+
+        return NonRecordingClient()
+
+    def set_client(self, client=None):
+        # type: (Optional[sentry_sdk.client.BaseClient]) -> None
+        """
+        .. versionadded:: 2.0.0
+
+        Sets the client for this scope.
+
+        :param client: The client to use in this scope.
+            If `None` the client of the scope will be replaced by a :py:class:`sentry_sdk.NonRecordingClient`.
+
+        """
+        self.client = client if client is not None else NonRecordingClient()
 
 
 _INITIAL_CURRENT_SCOPE = PotelScope(ty=ScopeType.CURRENT)

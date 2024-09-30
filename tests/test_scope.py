@@ -8,16 +8,12 @@ from sentry_sdk import (
     capture_exception,
     isolation_scope,
     new_scope,
+    use_scope,
+    use_isolation_scope,
 )
 from sentry_sdk.client import Client, NonRecordingClient
-from sentry_sdk.scope import (
-    Scope,
-    ScopeType,
-    use_isolation_scope,
-    use_scope,
-    should_send_default_pii,
-)
-
+from sentry_sdk.integrations.opentelemetry.scope import PotelScope as Scope
+from sentry_sdk.scope import ScopeType, should_send_default_pii
 
 SLOTS_NOT_COPIED = {"client"}
 """__slots__ that are not copied when copying a Scope object."""
